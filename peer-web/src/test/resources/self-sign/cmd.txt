@@ -1,0 +1,67 @@
+## 信任密钥库合并在密钥库
+
+一、peer1生成密钥库以及导出公钥证书
+1、生成peer1的密钥库peer1.jks
+keytool -genkeypair -alias peer1 -keystore peer1.jks -storepass passwd1 -dname CN=peer1,OU=peer1,O=peer1,L=peer1,C=CN
+2、查看密钥库详情
+keytool -list -keystore peer1.jks -storepass passwd1 -v
+3、peer1导出公钥证书
+keytool -export -alias peer1 -file peer1.cer -keystore peer1.jks -storepass passwd1
+
+二、peer2生成密钥库以及导出公钥证书
+1、生成peer2的密钥库peer2.jks
+keytool -genkeypair -alias peer2 -keystore peer2.jks -storepass passwd2 -dname CN=peer2,OU=peer2,O=peer2,L=peer2,C=CN
+2、查看密钥库详情
+keytool -list -keystore peer2.jks -storepass passwd2 -v
+3、peer2导出公钥证书
+keytool -export -alias peer2 -file peer2.cer -keystore peer2.jks -storepass passwd2
+
+三、peer1/peer2互相导入对方密钥库，建立信任
+1、peer2的证书导入peer1密钥库
+keytool -import -alias peer2 -file peer2.cer -keystore peer1.jks -storepass passwd1
+2、peer1的证书导入peer2密钥库
+keytool -import -alias peer1 -file peer1.cer -keystore peer2.jks -storepass passwd2
+
+四、检验peer1/peer2是否具有自己的privateKey和对方的cert
+1、检验peer1是否具有自己的privateKey和peer2的cert
+keytool -list -keystore peer1.jks -storepass passwd1
+2、检验peer2是否具有自己的privateKey和peer1的cert
+keytool -list -keystore peer2.jks -storepass passwd2
+
+五、转换JKS格式为P12（便于在postman单向测试证书）
+1、转换peer2.jks->peer2.p12
+keytool -importkeystore -srckeystore peer2.jks -destkeystore peer2.p12 -srcstoretype JKS -deststoretype PKCS12 -srcstorepass passwd2 -deststorepass passwd2 -srckeypass passwd2 -destkeypass passwd2 -srcalias peer2 -destalias peer2 -noprompt
+2、转换peer1.jks->peer1.p12
+keytool -importkeystore -srckeystore peer1.jks -destkeystore peer1.p12 -srcstoretype JKS -deststoretype PKCS12 -srcstorepass passwd1 -deststorepass passwd1 -srckeypass passwd1 -destkeypass passwd1 -srcalias peer1 -destalias peer1 -noprompt
+
+
+
+## 信任密钥库独立于密钥库
+
+一、peer1生成密钥库以及导出公钥证书
+1、生成peer1的密钥库peer1.jks
+keytool -genkeypair -alias peer1 -keystore peer1.jks -storepass passwd1 -dname CN=peer1,OU=peer1,O=peer1,L=peer1,C=CN
+2、查看密钥库详情
+keytool -list -keystore peer1.jks -storepass passwd1 -v
+3、peer1导出公钥证书
+keytool -export -alias peer1 -file peer1.cer -keystore peer1.jks -storepass passwd1
+
+二、peer2生成密钥库以及导出公钥证书
+1、生成peer2的密钥库peer2.jks
+keytool -genkeypair -alias peer2 -keystore peer2.jks -storepass passwd2 -dname CN=peer2,OU=peer2,O=peer2,L=peer2,C=CN
+2、查看密钥库详情
+keytool -list -keystore peer2.jks -storepass passwd2 -v
+3、peer2导出公钥证书
+keytool -export -alias peer2 -file peer2.cer -keystore peer2.jks -storepass passwd2
+
+三、peer1/peer2互相导入对方信任密钥库
+1、peer2的证书导入peer1信任密钥库
+keytool -import -alias peer1Trust -file peer2.cer -keystore peer1Trust.jks -storepass passwd1
+2、peer1的证书导入peer2信任密钥库
+keytool -import -alias peer2Trust -file peer1.cer -keystore peer2Trust.jks -storepass passwd2
+
+四、检验peer1/peer2是否具有对方的cert
+1、检验peer1的信任密钥库是否有peer2的cert
+keytool -list -keystore peer1Trust.jks -storepass passwd1
+2、检验peer2的信任密钥库是否有peer1的cert
+keytool -list -keystore peer2Trust.jks -storepass passwd2

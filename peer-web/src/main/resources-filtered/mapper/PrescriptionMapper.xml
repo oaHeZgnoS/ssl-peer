@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.szh.peer.mapper.PrescriptionMapper">
+
+    <resultMap id="totalElements" type="long"/>
+    <resultMap id="prescriptionDto" type="com.szh.peer.res.PrescriptionDto"/>
+
+    <!--分页查询药方列表-->
+    <select id="listPrescription" resultType="java.util.List" resultMap="PrescriptionDto,totalElements">
+        SELECT SQL_CALC_FOUND_ROWS
+            id,
+            code,
+            detail_content detailContent,
+            publish_time publishTime,
+            authorId authorId,
+            author_name authorName,
+            request_url requestUrl
+        FROM
+            ${env}_prescription.tb_prescription prescription
+        WHERE
+            1=1
+            AND prescription.logic_delete = 0
+        ORDER BY
+            prescription.publish_time DESC,
+            code DESC
+        limit ${(pageNum-1)*pageSize},#{pageSize};
+
+        SELECT FOUND_ROWS();
+    </select>
+
+</mapper>

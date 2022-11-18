@@ -1,0 +1,49 @@
+# CA jks
+keytool -genkeypair -alias ca -dname "cn=Local Network - Development" -validity 10000 -keyalg RSA -keysize 2048 -ext bc:c -keystore ca.jks -keypass passwdca -storepass passwdca
+
+# CA cert
+keytool -exportcert -noprompt -rfc -alias ca -file ca.crt -keystore ca.jks -storepass passwdca
+
+keytool -exportcert -noprompt -rfc -alias ca -file ca.pem -keystore ca.jks -storepass passwdca
+
+# Trust Store containing ca.crt
+keytool -importcert -noprompt -alias catrust -file ca.crt -keypass passwdtrust -keystore trust.jks -storepass passwdtrust
+
+
+#Peer1
+# generate private keys (for peer1)
+keytool -genkeypair -alias peer1 -dname cn=peer1 -validity 10000 -keyalg RSA -keysize 2048 -keystore peer1.jks -keypass passwd1 -storepass passwd1
+
+# generate a certificate for peer1 signed by ca (ca -> peer1)
+
+# generate csr
+keytool -certreq -noprompt -alias peer1 -sigalg SHA256withRSA -file peer1.csr -keypass passwd1 -keystore peer1.jks -dname "CN=peer1" -storepass passwd1
+
+# sign csr
+keytool -gencert -noprompt -infile peer1.csr -outfile peer1.crt -alias ca -sigalg SHA256withRSA -validity 10000 -ext ku:c=dig,keyEnc -ext "san=dns:localhost,ip:127.0.0.1" -ext eku=sa,ca -keypass passwdca -keystore ca.jks -storepass passwdca -rfc
+
+# import ca.crt into peer1.jks
+keytool -keystore peer1.jks -storepass passwd1 -importcert -trustcacerts -noprompt -alias ca -file ca.crt
+
+# import peer1.crt into peer1.jks (complete crt chain ca->peer1 imported)
+keytool -keystore peer1.jks -storepass passwd1 -importcert -noprompt -alias peer1 -file peer1.crt
+
+
+
+#Peer2
+# generate private keys (for peer2)
+keytool -genkeypair -alias peer2 -dname cn=peer2 -validity 10000 -keyalg RSA -keysize 2048 -keystore peer2.jks -keypass passwd2 -storepass passwd2
+
+# generate a certificate for peer2 signed by ca (ca -> peer2)
+
+# generate csr
+keytool -certreq -noprompt -alias peer2 -sigalg SHA256withRSA -file peer2.csr -keypass passwd2 -keystore peer2.jks -dname "CN=peer2" -storepass passwd2
+
+# sign csr
+keytool -gencert -noprompt -infile peer2.csr -outfile peer2.crt -alias ca -sigalg SHA256withRSA -validity 10000 -ext ku:c=dig,keyEnc -ext "san=dns:localhost,ip:127.0.0.1" -ext eku=sa,ca -keypass passwdca -keystore ca.jks -storepass passwdca -rfc
+
+# import ca.crt into peer2.jks
+keytool -keystore peer2.jks -storepass passwd2 -importcert -trustcacerts -noprompt -alias ca -file ca.crt
+
+# import peer2.crt into peer2.jks (complete crt chain ca->peer1 imported)
+keytool -keystore peer2.jks -storepass passwd2 -importcert -noprompt -alias peer2 -file peer2.crt

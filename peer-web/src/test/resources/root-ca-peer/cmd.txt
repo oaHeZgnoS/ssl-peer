@@ -1,0 +1,68 @@
+### root
+```
+## [root] generate root.jks
+keytool -genkeypair -alias root -dname "cn=root" -validity 10000 -keyalg RSA -keysize 2048 -ext bc:c -keystore root.jks -keypass passwdroot -storepass passwdroot
+
+## [root] self sign and generate root.pem
+keytool -exportcert -rfc -keystore root.jks -alias root -storepass passwdroot > root.pem
+```
+
+### ca
+```
+## [ca] generate ca.jks
+keytool -genkeypair -alias ca -dname "cn=ca" -validity 10000 -keyalg RSA -keysize 2048 -ext bc:c -keystore ca.jks -keypass passwdca -storepass passwdca
+## [ca] generate ca.csr
+keytool -keystore ca.jks -storepass passwdca -certreq -alias ca -file ca.csr
+## [root] root sign and generate ca.pem (root -> ca)
+keytool -keystore root.jks -storepass passwdroot -gencert -alias root -ext bc=0 -ext san=dns:ca -rfc -infile ca.csr > ca.pem
+
+## [ca] import root.pem and ca.pem into ca.jks
+keytool -keystore ca.jks -storepass passwdca -importcert -trustcacerts -noprompt -alias root -file root.pem
+keytool -keystore ca.jks -storepass passwdca -importcert -alias ca -file ca.pem
+```
+
+### peer1
+```
+## [peer1] generate peer1.jks
+keytool -genkeypair -alias peer1 -dname cn=peer1 -validity 10000 -keyalg RSA -keysize 2048 -keystore peer1.jks -keypass passwd1 -storepass passwd1
+## [peer1] generate peer1.csr
+keytool -keystore peer1.jks -storepass passwd1 -certreq -alias peer1 -file peer1.csr
+## [ca] ca sign and generate peer1.pem (root -> ca -> peer1)
+keytool -keystore ca.jks -storepass passwdca -gencert -alias ca -ext ku:c=dig,keyEnc -ext "san=dns:localhost,ip:127.0.0.1" -ext eku=sa,ca -rfc -infile peer1.csr > peer1.pem
+
+## [peer1] import root.pem and ca.pem and peer1.pem into peer1.jks
+keytool -keystore peer1.jks -storepass passwd1 -importcert -trustcacerts -noprompt -alias root -file root.pem
+keytool -keystore peer1.jks -storepass passwd1 -importcert -alias ca -file ca.pem
+keytool -keystore peer1.jks -storepass passwd1 -importcert -alias peer1 -file peer1.pem
+
+## [peer1] import root.pem and ca.pem and peer1.pem into peer1Trust.jks
+keytool -keystore peer1Trust.jks -storepass passwd1 -importcert -trustcacerts -noprompt -alias root -file root.pem
+keytool -keystore peer1Trust.jks -storepass passwd1 -importcert -alias ca -file ca.pem
+keytool -keystore peer1Trust.jks -storepass passwd1 -importcert -alias peer1 -file peer1.pem
+
+## [peer1] peer1.jks -> peer1.p12
+keytool -importkeystore -srckeystore peer1.jks -destkeystore peer1.p12 -srcstoretype JKS -deststoretype PKCS12 -srcstorepass passwd1 -deststorepass passwd1 -srckeypass passwd1 -destkeypass passwd1 -srcalias peer1 -destalias peer1 -noprompt
+```
+
+### peer2
+```
+## [peer2] generate peer2.jks
+keytool -genkeypair -alias peer2 -dname cn=peer2 -validity 10000 -keyalg RSA -keysize 2048 -keystore peer2.jks -keypass passwd2 -storepass passwd2
+## [peer2] generate peer2.csr
+keytool -keystore peer2.jks -storepass passwd2 -certreq -alias peer2 -file peer2.csr
+## [ca] ca sign and generate peer2.pem (root -> ca -> peer2)
+keytool -keystore ca.jks -storepass passwdca -gencert -alias ca -ext ku:c=dig,keyEnc -ext "san=dns:localhost,ip:127.0.0.1" -ext eku=sa,ca -rfc -infile peer2.csr > peer2.pem
+
+## [peer2] import root.pem and ca.pem and peer2.pem into peer2.jks
+keytool -keystore peer2.jks -storepass passwd2 -importcert -trustcacerts -noprompt -alias root -file root.pem
+keytool -keystore peer2.jks -storepass passwd2 -importcert -alias ca -file ca.pem
+keytool -keystore peer2.jks -storepass passwd2 -importcert -alias peer2 -file peer2.pem
+
+## [peer2] import root.pem and ca.pem and peer2.pem into peer2Trust.jks
+keytool -keystore peer2Trust.jks -storepass passwd2 -importcert -trustcacerts -noprompt -alias root -file root.pem
+keytool -keystore peer2Trust.jks -storepass passwd2 -importcert -alias ca -file ca.pem
+keytool -keystore peer2Trust.jks -storepass passwd2 -importcert -alias peer2 -file peer2.pem
+
+## [peer2] peer2.jks -> peer2.p12
+keytool -importkeystore -srckeystore peer2.jks -destkeystore peer2.p12 -srcstoretype JKS -deststoretype PKCS12 -srcstorepass passwd2 -deststorepass passwd2 -srckeypass passwd2 -destkeypass passwd2 -srcalias peer2 -destalias peer2 -noprompt
+```
